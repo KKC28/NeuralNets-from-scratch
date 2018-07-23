@@ -36,7 +36,7 @@ def softmax(Z):
     
     return A
 
-
+# Converting a dictionary to vector 
 def dict_to_vector(params,grads):
     
     total = 0
@@ -53,7 +53,7 @@ def dict_to_vector(params,grads):
     assert(total == theta.size)
     return theta.reshape(-1,1),theta_grads.reshape(-1,1)
 
-
+# Converting a vector to dictionary 
 def vector_to_dict(theta,p):
     
     L = len(p) // 2
@@ -71,7 +71,7 @@ def vector_to_dict(theta,p):
     
     return params
 
-    
+# Initialization for Adam Optimization    
 def init_for_adam(params):
     
     L = len(params) //2
@@ -87,13 +87,7 @@ def init_for_adam(params):
         
     return v, s
 
-def one_hot(y):
-    C = np.unique(y).size
-    y_hot = np.eye(C)[:,y]
-    
-    return y_hot
-    
-    
+
 # Initializing the grid
 def grid(X,t=1):
     xmin, xmax = X[0].min() -t, X[0].max() +t
@@ -105,8 +99,30 @@ def grid(X,t=1):
 
     return xx,yy,Z
 
+# Generating multi-class data
+def multiClass_Data(N,K):
+    # N: number of points per class
+    # K: number of classes
+    D = 2 # dimensionality
+    X2 = np.zeros((N*K,D)) # data matrix (each row = single example)
+    y2 = np.zeros(N*K, dtype='uint8') # class labels
+    for j in xrange(K):
+        ix = range(N*j,N*(j+1))
+        r = np.linspace(0.0,1,N) # radius
+        t = np.linspace(j*4,(j+1)*4,N) + np.random.randn(N)*0.2 # theta
+        X2[ix] = np.c_[r*np.sin(t), r*np.cos(t)]
+        y2[ix] = j
+    
+    return X2,y2
 
-
+# Creating a One Hot Matrix
+def one_hot(y):
+    C = np.unique(y).size
+    y_hot = np.eye(C)[:,y.reshape(-1)]
+    
+    return y_hot
+    
+    
 
     
 
