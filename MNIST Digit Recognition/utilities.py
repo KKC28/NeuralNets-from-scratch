@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
+# Initialize parameters using HE initialization
 def params_init(layers):
     params = {}
     L = len(layers) 
@@ -15,6 +17,7 @@ def params_init(layers):
         
     return params
 
+# ReLU function
 def relu(Z):
 
     A = np.maximum(0,Z)
@@ -23,7 +26,7 @@ def relu(Z):
     
     return A 
 
-
+ # ReLu Gradient
 def relu_grad(Z):
     grad = np.zeros(Z.shape)
     grad[Z>0] =1 
@@ -38,6 +41,7 @@ def softmax(Z):
     
     return A
 
+# Sofmax with better stability
 def norm_softmax(Z):
     b = Z.max(axis=0)
     y = np.exp(Z-b)
@@ -46,6 +50,8 @@ def norm_softmax(Z):
     
     return A
 
+# Forward Propagation
+# (L-1) ReLu layers with Softmax output layer
 def forward_prop(X,params):
     caches = {}
     A = X
@@ -67,7 +73,7 @@ def forward_prop(X,params):
     
     return AL,caches
 
-
+# Cost Function
 def costFunction(AL,Y,reg=0):
     
     cost = np.mean(-np.sum(Y*np.log(AL),axis=0))
@@ -90,7 +96,7 @@ def compute_grads(dZ,grads,params,caches,l,m,lamb):
     
     return grads
 
-
+# Backpropagation
 def backprop(AL,Y,caches,params,lamb=0):
     grads = {}
     L = len(params) //2
@@ -110,6 +116,7 @@ def backprop(AL,Y,caches,params,lamb=0):
     del grads['dA0']    
     return grads
 
+# Converting a dictionary to vector
 def dict_to_vector(params,grads):
     
     total = 0
@@ -126,7 +133,7 @@ def dict_to_vector(params,grads):
     assert(total == theta.size)
     return theta.reshape(-1,1),theta_grads.reshape(-1,1)
 
-
+# Converting a vector to dictionary 
 def vector_to_dict(theta,p):
     
     L = len(p) // 2
@@ -144,7 +151,8 @@ def vector_to_dict(theta,p):
     
     return params
 
-# Perform gradient checking to check our implementation of backprop
+# Perform gradient checking using Numerical Gradient Estimation  
+# to check our implementation of backprop
 def gradient_check(X,Y,params,grads):
     
     epsilon = 1e-7
@@ -179,8 +187,37 @@ def gradient_check(X,Y,params,grads):
         print ("\033[91m" + "There is a mistake in the backward propagation! difference = " + str(difference) + "\033[0m")
     else:
         print ("\033[92m" + "Your backward propagation works perfectly fine! difference = " + str(difference) + "\033[0m")
-        
 
+        
+# Function to create mini batches
+def random_mini_batches(X,Y,batch_size = 64):
+    
+    mini_batches = []
+    m = X.shape[1]
+    # Shuffle
+    permute = np.random.permutation(m)
+    X = X[:,permute]
+    Y = Y[:,permute]
+    
+    # Partition
+    complete_batches = math.floor(m/batch_size)
+    for k in range(complete_batches):
+        batch_X = X[:,k*batch_size:(k+1)*batch_size]
+        batch_Y = Y[:,k*batch_size:(k+1)*batch_size]
+        batch = (batch_X,batch_Y)
+        mini_batches.append(batch)
+        
+    # Handling the end case
+    if m % batch_size != 0:
+        batch_X = X[:,(k+1)*batch_size:]
+        batch_Y = Y[:,(k+1)*batch_size:]
+        batch = (batch_X,batch_Y)
+        mini_batches.append(batch)
+        
+    return mini_batches        
+
+
+# Initialization for Adam Optimization
 def init_for_adam(params):
     
     L = len(params) //2
@@ -196,6 +233,7 @@ def init_for_adam(params):
         
     return v, s
 
+# Adam optimization algorithm for updating weights
 def update_parameters_with_adam(params, grads, v, s, t, alpha = 0.01,
                                 beta1 = 0.9, beta2 = 0.999,  epsilon = 1e-8):
    
@@ -226,10 +264,20 @@ def update_parameters_with_adam(params, grads, v, s, t, alpha = 0.01,
 
     return params, v, s
 
+def lrList(lr=1e-6,scale=2):
+    rate_list = [lr]
+    while(lr<0.5):
+        lr = lr*scale
+        rate_list.append(lr)
+    
+    return rate_list  
+
+# Learning Rate decay
 def learningRate_decay(alpha,epoch_num):
     a = alpha*(0.8 ** (epoch_num/30))
     return a
 
+# Function to compute the l2 regularization of weights (only W's)
 def l2regularization(params,lamb):
     
     L = len(params) // 2
@@ -241,17 +289,20 @@ def l2regularization(params,lamb):
     reg_term = (lamb/2)*total
     return reg_term
 
+# Creating a One Hot Matrix
 def one_hot(y):
     C = np.unique(y).size
     y_hot = np.eye(C)[:,y.reshape(-1)]
     
     return y_hot
 
+# Predicting Multiclass labels
 def predict_multiClass(X2,params2):
     AL,_ = forward_prop(X2,params2)
     pred = np.argmax(AL,axis=0)
     return pred
 
+#Preding the accuracy
 def accuracy(Xnorm,Y,test_Xnorm,testY,p):
     pred_y = predict_multiClass(Xnorm,p)
     acc_train = np.mean(pred_y.flatten()==Y.flatten())*100
@@ -263,5 +314,34 @@ def accuracy(Xnorm,Y,test_Xnorm,testY,p):
     print ("Neural Network made errors in predicting %s samples out of 10000 in the Test Set " 
            % np.count_nonzero(testY != pred_ytest))
 
+# Function for computing the confusion matrix
+def confusion_matrix(test_y,pred_y,labels):
+    c_mat = np.zeros((labels.size,labels.size),dtype=int)
+    
+    for i in labels:
+        pos = test_y == i
+        for j in labels:
+            temp = np.count_nonzero(pred_y[pos] == j)
+            c_mat[i,j] = temp
+    
+    return c_mat   
 
+# Plotting the confusion matrix
+def plot_confusionMatrix(c_mat,class_labels):
+    plt.figure(figsize=(11,9))
+    ax = plt.axes()
+    plt.imshow(c_mat,cmap=plt.cm.Spectral_r)
+    plt.colorbar()
+    ax.set_xticks(np.arange(len(class_labels)))
+    ax.set_yticks(np.arange(len(class_labels)))
+    ax.set_xticklabels(class_labels)
+    ax.set_yticklabels(class_labels)
+    ax.set_xlabel("Predicted Labels",fontsize=12)
+    ax.set_ylabel("True Labels",fontsize = 12)
 
+    for i in range(len(class_labels)):
+        for j in range(len(class_labels)):
+            text = ax.text(j, i, c_mat[i, j],ha="center", va="center", color="w")
+        
+    plt.title("Confusion Matrix",fontsize=15)
+    plt.show()
