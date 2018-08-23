@@ -264,6 +264,7 @@ def update_parameters_with_adam(params, grads, v, s, t, alpha = 0.01,
 
     return params, v, s
 
+# Generates a list of exponentialy increasing learning rate required by the lrFinder 
 def lrList(lr=1e-6,scale=2):
     rate_list = [lr]
     while(lr<0.5):
